@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Delete,
   HttpCode,
   HttpStatus,
   Param,
@@ -9,7 +10,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ClientsService } from './clients.service';
-import { AuthGuard } from '@nestjs/passport';
 import { AuthUser } from 'src/auth/models/auth-user';
 import { Request } from 'express';
 import { GetClientsDto } from './dto/get-client.dto';
@@ -41,5 +41,11 @@ export class ClientsController {
   async getClients(@Req() req: Request, @Query() query: GetClientsDto) {
     const user = req.user as AuthUser;
     return this.clientsService.getClients(user.shopId, query);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  async deleteClient(@Param('id') id: string) {
+    return this.clientsService.softDelete(id);
   }
 }

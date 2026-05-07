@@ -24,6 +24,9 @@ import { DashboardController } from './dashboard/dashboard.controller';
 import { DashboardService } from './dashboard/dashboard.service';
 import { PdfModule } from './pdf/pdf.module';
 import { EmailModule } from './email/email.module';
+import { ScheduledOrdersModule } from './scheduled-orders/scheduled-orders.module';
+import { UserSchedulesModule } from './user-schedules/user-schedules.module';
+import { UserTreatmentsModule } from './user-treatments/user-treatments.module';
 
 @Module({
   imports: [
@@ -40,6 +43,9 @@ import { EmailModule } from './email/email.module';
     ShopModule,
     PdfModule,
     EmailModule,
+    ScheduledOrdersModule,
+    UserSchedulesModule,
+    UserTreatmentsModule,
   ],
   controllers: [
     AppController,
@@ -47,7 +53,7 @@ import { EmailModule } from './email/email.module';
     OrdersController,
     Usercontroller,
     ShopController,
-    DashboardController
+    DashboardController,
   ],
   providers: [
     AppService,

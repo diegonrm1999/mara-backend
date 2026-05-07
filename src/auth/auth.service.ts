@@ -21,7 +21,7 @@ export class AuthService {
   }
 
   async loginAdmin(user: User) {
-    if (user.role !== Role.Owner) {
+    if (user.role !== Role.Admin) {
       throw new UnauthorizedException('Acceso denegado');
     }
     return this.login(user);

@@ -6,6 +6,7 @@ import {
   UseGuards,
   Req,
   Patch,
+  Delete,
   Param,
 } from '@nestjs/common';
 import { TreatmentsService } from './treatments.service';
@@ -33,5 +34,10 @@ export class TreatmentsController {
   findAll(@Req() req: Request) {
     const user = req.user as AuthUser;
     return this.treatmentsService.findAll(user);
+  }
+
+  @Delete(':id')
+  async deleteTreatment(@Param('id') id: string) {
+    return this.treatmentsService.softDelete(id);
   }
 }

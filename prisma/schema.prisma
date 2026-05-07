@@ -8,125 +8,243 @@ datasource db {
 }
 
 model Shop {
-  id       String   @id @default(uuid())
-  name     String
-  users        User[]
-  clients      Client[]
-  treatments   Treatment[]
-  orders       Order[]
-  
+  id              String @id @default(uuid())
+  name            String
+  lastOrderNumber Int    @default(0)
+
+  users                  User[]
+  clients                Client[]
+  treatments             Treatment[]
+  orders                 Order[]
+  scheduledOrders        ScheduledOrder[]
+  userSchedules          UserSchedule[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 }
 
 model User {
-  id       String   @id @default(uuid())
-  email    String?   @unique
-  password String?
-  role     Role
+  id        String  @id @default(uuid())
+  email     String? @unique
+  password  String?
+  role      Role
   firstName String
   lastName  String
 
-  stylistOrders Order[] @relation("StylistUser")
-  cashierOrders Order[] @relation("CashierUser")
-  operatorOrders Order[] @relation("OperatorUser")
+  stylistOrders    Order[] @relation("StylistUser")
+  cashierOrders    Order[] @relation("CashierUser")
+  supervisorOrders Order[] @relation("SupervisorUser")
 
-  shopId    String
-  shop      Shop     @relation(fields: [shopId], references: [id])
+  treatments               UserTreatment[]
+  schedules                UserSchedule[]
+  scheduleExceptions       UserScheduleException[]
+  createdScheduledOrders   ScheduledOrder[]        @relation("ScheduledOrderCreator")
+  assignedScheduledOrders  ScheduledOrder[]        @relation("ScheduledOrderStylist")
+
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 }
 
 model Client {
   id    String  @id @default(uuid())
-  dni   String @unique
-  name  String
+  dni   String  @unique
+  firstName  String
+  lastName  String
   phone String?
   email String?
 
-  orders Order[]
+  orders          Order[]
+  scheduledOrders ScheduledOrder[]
 
-  shopId    String
-  shop      Shop     @relation(fields: [shopId], references: [id])
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
-  @@index([shopId, name], name: "clients_shop_name")
+  @@index([shopId, firstName, lastName], name: "clients_shop_name")
 }
 
 model Treatment {
-  id    String @id @default(uuid())
-  name  String
+  id         String @id @default(uuid())
+  name       String
   percentage Float
+  basePrice  Float?
 
-  orderTreatments OrderTreatment[]
+  orderTreatments          OrderTreatment[]
+  scheduledOrderTreatments ScheduledOrderTreatment[]
+  userTreatments           UserTreatment[]
 
-  shopId    String
-  shop      Shop     @relation(fields: [shopId], references: [id])
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+}
+
+model UserTreatment {
+  id          String @id @default(uuid())
+  userId      String
+  treatmentId String
+
+  user      User      @relation(fields: [userId], references: [id])
+  treatment Treatment @relation(fields: [treatmentId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, treatmentId])
+}
+
+model UserSchedule {
+  id        String @id @default(uuid())
+  userId    String
+  shopId    String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+
+  user User @relation(fields: [userId], references: [id])
+  shop Shop @relation(fields: [shopId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, dayOfWeek])
+}
+
+model UserScheduleException {
+  id        String                @id @default(uuid())
+  userId    String
+  user      User                  @relation(fields: [userId], references: [id])
+  date      DateTime
+  type      ScheduleExceptionType
+  startTime String?
+  endTime   String?
+  reason    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
 }
 
 model OrderTreatment {
-  id           String   @id @default(uuid())
-  orderId      String
-  treatmentId  String
-  price        Float
+  id          String @id @default(uuid())
+  orderId     String
+  treatmentId String
+  price       Float
 
-  order        Order     @relation(fields: [orderId], references: [id])
-  treatment    Treatment @relation(fields: [treatmentId], references: [id])
+  order     Order     @relation(fields: [orderId], references: [id])
+  treatment Treatment @relation(fields: [treatmentId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Order {
-  id         String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  stylistId  String
-  stylist    User     @relation("StylistUser", fields: [stylistId], references: [id])
+  stylistId String
+  stylist   User   @relation("StylistUser", fields: [stylistId], references: [id])
 
-  operatorId  String
-  operator    User     @relation("OperatorUser", fields: [operatorId], references: [id])
+  supervisorId String
+  supervisor   User   @relation("SupervisorUser", fields: [supervisorId], references: [id])
 
-  cashierId  String
-  cashier    User     @relation("CashierUser", fields: [cashierId], references: [id])
+  cashierId String
+  cashier   User   @relation("CashierUser", fields: [cashierId], references: [id])
 
-  shopId    String
-  shop      Shop     @relation(fields: [shopId], references: [id])
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id])
 
-  clientId   String
-  client     Client  @relation(fields: [clientId], references: [id])
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
 
-  treatments OrderTreatment[]
-  totalPrice    Float
-  stylistEarnings Float @default(0)
+  treatments      OrderTreatment[]
+  totalPrice      Float
+  stylistEarnings Float  @default(0)
 
   paidAmount    Float?
   paymentMethod PaymentMethod?
   status        OrderStatus @default(Created)
-  orderNumber  Int @unique @default(autoincrement())
-  ticketNumber String?
+  orderNumber   Int
+  ticketNumber  String?
+
+  scheduledOrder ScheduledOrder?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([shopId, orderNumber])
   @@index([shopId, createdAt(sort: Desc)], name: "orders_shop_date")
-  @@index([shopId, status], name: "orders_shop_status") 
+  @@index([shopId, status], name: "orders_shop_status")
   @@index([shopId, stylistId], name: "orders_shop_stylist")
-  @@index([shopId, operatorId], name: "orders_shop_operator")
+  @@index([shopId, supervisorId], name: "orders_shop_supervisor")
   @@index([shopId, cashierId], name: "orders_shop_cashier")
+}
+
+model ScheduledOrder {
+  id     String @id @default(uuid())
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id])
+
+  contactName  String
+  contactPhone String
+  contactEmail String?
+
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id])
+
+  stylistId String?
+  stylist   User?   @relation("ScheduledOrderStylist", fields: [stylistId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation("ScheduledOrderCreator", fields: [createdById], references: [id])
+  source      ScheduledOrderSource @default(Web)
+
+  scheduledAt     DateTime
+  durationMinutes Int
+
+  treatments ScheduledOrderTreatment[]
+
+  status ScheduledOrderStatus @default(Pending)
+  notes  String?
+
+  orderId String? @unique
+  order   Order?  @relation(fields: [orderId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@index([shopId, scheduledAt], name: "scheduled_orders_shop_date")
+  @@index([shopId, status], name: "scheduled_orders_shop_status")
+  @@index([shopId, stylistId], name: "scheduled_orders_shop_stylist")
+}
+
+model ScheduledOrderTreatment {
+  id               String @id @default(uuid())
+  scheduledOrderId String
+  treatmentId      String
+
+  scheduledOrder ScheduledOrder @relation(fields: [scheduledOrderId], references: [id])
+  treatment      Treatment      @relation(fields: [treatmentId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum Role {
   Stylist
   Cashier
-  Operator
-  Manager
-  Owner
+  Supervisor
+  Admin
 }
 
 enum OrderStatus {
@@ -140,4 +258,22 @@ enum PaymentMethod {
   Cash
   Yape
   Card
+}
+
+enum ScheduledOrderStatus {
+  Pending
+  Confirmed
+  Cancelled
+  NoShow
+  Completed
+}
+
+enum ScheduledOrderSource {
+  Web
+  Internal
+}
+
+enum ScheduleExceptionType {
+  DayOff
+  CustomHours
 }

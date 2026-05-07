@@ -12,7 +12,7 @@ export interface OrderReceiptData {
   date: string;
   time: string;
   stylistName: string;
-  operatorName: string;
+  supervisorName: string;
   cashierName: string;
   treatments: Array<{
     name: string;

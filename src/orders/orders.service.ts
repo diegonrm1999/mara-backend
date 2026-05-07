@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { OrderStatus, Prisma, Role } from '@prisma/client';
@@ -69,27 +69,37 @@ export class OrdersService {
       0,
     );
 
-    const createdOrder = await this.prisma.order.create({
-      data: {
-        stylistId: dto.stylistId,
-        cashierId: dto.cashierId,
-        clientId: clientId,
-        operatorId: user.id,
-        shopId: user.shopId,
-        totalPrice: totalPrice,
-        treatments: {
-          create: dto.treatments.map((t) => ({
-            treatmentId: t.treatmentId,
-            price: t.price,
-          })),
+    const createdOrder = await this.prisma.$transaction(async (tx) => {
+      const shop = await tx.shop.update({
+        where: { id: user.shopId },
+        data: { lastOrderNumber: { increment: 1 } },
+        select: { lastOrderNumber: true },
+      });
+
+      return tx.order.create({
+        data: {
+          stylistId: dto.stylistId,
+          cashierId: dto.cashierId,
+          clientId: clientId,
+          supervisorId: user.id,
+          shopId: user.shopId,
+          totalPrice: totalPrice,
+          orderNumber: shop.lastOrderNumber,
+          treatments: {
+            create: dto.treatments.map((t) => ({
+              treatmentId: t.treatmentId,
+              price: t.price,
+            })),
+          },
         },
-      },
-      include: {
-        treatments: true,
-      },
+        include: {
+          treatments: true,
+        },
+      });
     });
+
     this.orderGateway.emitOrderRefresh(
-      createdOrder.operatorId,
+      createdOrder.supervisorId,
       createdOrder.cashierId,
       user.id,
     );
@@ -101,7 +111,7 @@ export class OrdersService {
     const order = await this.findOrderByIdWithSelect(id, {
       status: true,
       cashierId: true,
-      operatorId: true,
+      supervisorId: true,
     });
 
     if (order.status !== OrderStatus.Completed) {
@@ -116,12 +126,12 @@ export class OrdersService {
     });
 
     this.orderGateway.completeRefresh(
-      order.operatorId,
+      order.supervisorId,
       order.cashierId,
       userId,
     );
     this.orderGateway.emitOrderRefresh(
-      order.operatorId,
+      order.supervisorId,
       order.cashierId,
       userId,
     );
@@ -132,7 +142,7 @@ export class OrdersService {
     const order = await this.findOrderByIdWithSelect(id, {
       status: true,
       cashierId: true,
-      operatorId: true,
+      supervisorId: true,
       totalPrice: true,
     });
 
@@ -147,7 +157,7 @@ export class OrdersService {
       },
     });
     this.orderGateway.emitOrderRefresh(
-      order.operatorId,
+      order.supervisorId,
       order.cashierId,
       userId,
     );
@@ -155,10 +165,16 @@ export class OrdersService {
   }
 
   async completeOrder(id: string, dto: CompleteOrderDto, userId: string) {
+    if (!dto.paymentMethod) {
+      throw new BadRequestException(
+        'paidAmount y paymentMethod son requeridos para completar una orden',
+      );
+    }
+
     const order = await this.findOrderByIdWithSelect(id, {
       status: true,
       cashierId: true,
-      operatorId: true,
+      supervisorId: true,
       totalPrice: true,
       treatments: {
         include: {
@@ -234,12 +250,12 @@ export class OrdersService {
     });
 
     this.orderGateway.completeRefresh(
-      order.operatorId,
+      order.supervisorId,
       order.cashierId,
       userId,
     );
     this.orderGateway.emitOrderRefresh(
-      order.operatorId,
+      order.supervisorId,
       order.cashierId,
       userId,
     );
@@ -250,7 +266,7 @@ export class OrdersService {
     const order = await this.findOrderByIdWithSelect(id, {
       status: true,
       cashierId: true,
-      operatorId: true,
+      supervisorId: true,
       totalPrice: true,
       clientId: true,
       client: {
@@ -300,7 +316,7 @@ export class OrdersService {
       },
     });
     this.orderGateway.emitOrderRefresh(
-      updatedOrder.operatorId,
+      updatedOrder.supervisorId,
       updatedOrder.cashierId,
       user.id,
     );
@@ -370,14 +386,14 @@ export class OrdersService {
             status: { in: statuses },
             createdAt: { gte: startOfDay, lte: endOfDay },
           }
-        : user.rol === Role.Operator
+        : user.rol === Role.Supervisor
           ? {
-              operatorId: user.id,
+              supervisorId: user.id,
               status: { in: statuses },
               createdAt: { gte: startOfDay, lte: endOfDay },
             }
           : {
-              OR: [{ cashierId: user.id }, { operatorId: user.id }],
+              OR: [{ cashierId: user.id }, { supervisorId: user.id }],
               status: { in: statuses },
               createdAt: { gte: startOfDay, lte: endOfDay },
             };
@@ -446,7 +462,7 @@ export class OrdersService {
             },
           },
           stylistEarnings: true,
-          operator: {
+          supervisor: {
             select: {
               id: true,
               firstName: true,
@@ -498,7 +514,7 @@ export class OrdersService {
           client: true,
           shop: true,
           stylist: true,
-          operator: true,
+          supervisor: true,
           cashier: true,
           treatments: {
             include: {
@@ -540,7 +556,7 @@ export class OrdersService {
             cashierId: user.id,
           }
         : {
-            OR: [{ cashierId: user.id }, { operatorId: user.id }],
+            OR: [{ cashierId: user.id }, { supervisorId: user.id }],
           };
     const orders = await this.prisma.order.findMany({
       where: {
@@ -646,7 +662,7 @@ export class OrdersService {
       date: this.formatDate(DateUtils.toPeruTime(order.createdAt)),
       time: this.formatTime(DateUtils.toPeruTime(order.createdAt)),
       stylistName: '-',
-      operatorName: `${order.operator.firstName} ${order.operator.lastName ?? ''}`,
+      supervisorName: `${order.supervisor.firstName} ${order.supervisor.lastName ?? ''}`,
       cashierName: '-',
       treatments: this.mergeTreatments(order.treatments),
       totalPrice: order.totalPrice,
@@ -689,7 +705,7 @@ export class OrdersService {
     const where: any = { shopId };
 
     if (filters.stylistId) where.stylistId = filters.stylistId;
-    if (filters.operatorId) where.operatorId = filters.operatorId;
+    if (filters.supervisorId) where.supervisorId = filters.supervisorId;
     if (filters.cashierId) where.cashierId = filters.cashierId;
     if (filters.status) where.status = filters.status;
     if (filters.orderNumber) where.orderNumber = filters.orderNumber;

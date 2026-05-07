@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, ScheduledOrderStatus } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { DateUtils } from 'src/utils/date.utils';
+import { DashboardScheduledOrdersDto } from './dto/dashboard-scheduled.dto';
 
 @Injectable()
 export class DashboardService {
@@ -25,7 +26,7 @@ export class DashboardService {
       topStylistData,
     ] = await Promise.all([
       this.prisma.client.count({
-        where: { shopId },
+        where: { shopId, deletedAt: null },
       }),
 
       this.prisma.order.count({
@@ -80,6 +81,7 @@ export class DashboardService {
         where: {
           shopId,
           role: 'Stylist',
+          deletedAt: null,
         },
         include: {
           _count: {
@@ -121,6 +123,74 @@ export class DashboardService {
       salesThisWeek: salesThisWeek._sum.totalPrice || 0,
       salesThisMonth: salesThisMonth._sum.totalPrice || 0,
       topStylistWeek,
+    };
+  }
+
+  async getScheduledOrderStats(filters: DashboardScheduledOrdersDto) {
+    const where: any = { shopId: filters.shopId };
+
+    if (filters.status) where.status = filters.status;
+    if (filters.stylistId) where.stylistId = filters.stylistId;
+    if (filters.startDate || filters.endDate) {
+      where.scheduledAt = {};
+      if (filters.startDate) {
+        where.scheduledAt.gte = new Date(`${filters.startDate}T00:00:00.000Z`);
+      }
+      if (filters.endDate) {
+        where.scheduledAt.lte = new Date(`${filters.endDate}T23:59:59.999Z`);
+      }
+    }
+
+    const [
+      scheduledOrders,
+      totalCount,
+      statusCounts,
+    ] = await Promise.all([
+      this.prisma.scheduledOrder.findMany({
+        where,
+        orderBy: { scheduledAt: 'desc' },
+        include: {
+          treatments: {
+            include: {
+              treatment: {
+                select: { id: true, name: true },
+              },
+            },
+          },
+          stylist: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+        },
+      }),
+      this.prisma.scheduledOrder.count({ where }),
+      this.prisma.scheduledOrder.groupBy({
+        by: ['status'],
+        where: { shopId: filters.shopId },
+        _count: { id: true },
+      }),
+    ]);
+
+    // Build metrics
+    const statusMap: Record<string, number> = {};
+    for (const sc of statusCounts) {
+      statusMap[sc.status] = sc._count.id;
+    }
+
+    const total =
+      Object.values(statusMap).reduce((a, b) => a + b, 0) || 1;
+    const completed = statusMap[ScheduledOrderStatus.Completed] ?? 0;
+    const noShow = statusMap[ScheduledOrderStatus.NoShow] ?? 0;
+
+    return {
+      data: scheduledOrders,
+      meta: {
+        total: totalCount,
+      },
+      metrics: {
+        byStatus: statusMap,
+        conversionRate: Number(((completed / total) * 100).toFixed(2)),
+        noShowRate: Number(((noShow / total) * 100).toFixed(2)),
+      },
     };
   }
 }

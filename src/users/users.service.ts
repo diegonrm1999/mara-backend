@@ -42,7 +42,9 @@ export class UsersService {
     if (dto.password) {
       hashedPassword = await bcrypt.hash(dto.password, 10);
     }
-    const existingUser = await this.prisma.user.findUnique({ where: { id } });
+    const existingUser = await this.prisma.user.findUnique({
+      where: { id, deletedAt: null },
+    });
     if (!existingUser) {
       throw new Error('User not found');
     }
@@ -71,7 +73,7 @@ export class UsersService {
 
   async findStylists(user: AuthUser) {
     return this.prisma.user.findMany({
-      where: { role: Role.Stylist, shopId: user.shopId },
+      where: { role: Role.Stylist, shopId: user.shopId, deletedAt: null },
       select: {
         id: true,
         role: true,
@@ -84,36 +86,15 @@ export class UsersService {
     });
   }
 
-  async findManagers(user: AuthUser) {
+  async findSupervisors(user: AuthUser) {
     return this.prisma.user.findMany({
-      where: { role: Role.Manager, shopId: user.shopId },
+      where: { role: Role.Supervisor, shopId: user.shopId, deletedAt: null },
       select: {
         id: true,
         role: true,
         email: true,
         firstName: true,
         lastName: true,
-        shopId: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-  }
-
-  async findOperators(user: AuthUser, strict: boolean = false) {
-    const roles = strict ? [Role.Operator] : [Role.Operator, Role.Manager];
-
-    return this.prisma.user.findMany({
-      where: {
-        role: { in: roles },
-        shopId: user.shopId,
-      },
-      select: {
-        id: true,
-        role: true,
-        firstName: true,
-        lastName: true,
-        email: true,
         shopId: true,
         createdAt: true,
         updatedAt: true,
@@ -123,12 +104,13 @@ export class UsersService {
   }
 
   async findCashiers(user: AuthUser, strict: boolean = false) {
-    const roles = strict ? [Role.Cashier] : [Role.Cashier, Role.Manager];
+    const roles = strict ? [Role.Cashier] : [Role.Cashier, Role.Supervisor];
 
     return this.prisma.user.findMany({
       where: {
         role: { in: roles },
         shopId: user.shopId,
+        deletedAt: null,
       },
       select: {
         id: true,
@@ -145,17 +127,36 @@ export class UsersService {
   }
 
   async findByEmail(email: string) {
-    return this.prisma.user.findUnique({ where: { email } });
+    return this.prisma.user.findFirst({
+      where: { email, deletedAt: null },
+    });
   }
 
   async findUserById(id: string) {
-    return this.prisma.user.findUnique({ where: { id } });
+    return this.prisma.user.findFirst({
+      where: { id, deletedAt: null },
+    });
   }
 
   async ensureCanCreateOrder(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user || (user.role !== Role.Operator && user.role !== Role.Manager && user.role !== Role.Owner)) {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, deletedAt: null },
+    });
+    if (!user || (user.role !== Role.Supervisor && user.role !== Role.Admin)) {
       throw new Error('No tienes permisos para crear órdenes');
     }
+  }
+
+  async softDelete(id: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { id, deletedAt: null },
+    });
+    if (!user) {
+      throw new Error('User not found');
+    }
+    return await this.prisma.user.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
   }
 }

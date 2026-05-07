@@ -11,17 +11,17 @@ export class OrdersGateway {
   @WebSocketServer()
   server: Server;
 
-  emitOrderRefresh(operatorId: string, cashierId: string, userId: string) {
+  emitOrderRefresh(supervisorId: string, cashierId: string, userId: string) {
     try {
       this.server.emit(`order-refresh-${cashierId}`, userId);
-      this.server.emit(`order-refresh-${operatorId}`, userId);
+      this.server.emit(`order-refresh-${supervisorId}`, userId);
     } catch (error) {}
   }
 
-  completeRefresh(operatorId: string, cashierId: string, userId: string) {
+  completeRefresh(supervisorId: string, cashierId: string, userId: string) {
     try {
       this.server.emit(`complete-refresh-${cashierId}`, userId);
-      this.server.emit(`complete-refresh-${operatorId}`, userId);
+      this.server.emit(`complete-refresh-${supervisorId}`, userId);
     } catch (error) {}
   }
 }

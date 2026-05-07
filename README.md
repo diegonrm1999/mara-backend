@@ -24,25 +24,61 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Mara Studio Backend - A progressive Node.js framework for building efficient and scalable server-side applications, using NestJS, Prisma ORM, and PostgreSQL.
 
-## Project setup
+## Prerequisites
 
+- Node.js (v20.x recommended)
+- Docker Desktop (for the local database)
+
+## Running the app for the first time
+
+1. **Install dependencies:**
 ```bash
 $ npm install
 ```
 
-## Compile and run the project
+2. **Environment Variables:**
+Make sure you have a `.env` file in the root directory. If you don't have one, create it with the following local defaults:
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/mara_backend?schema=public"
+JWT_SECRET="super_secret_jwt_key_123"
+PORT=8080
+NODE_ENV="development"
+ALLOWED_ORIGINS="http://localhost:3000,http://localhost:3001"
+```
 
+3. **Start the database:**
+Spin up the local PostgreSQL database using Docker:
 ```bash
-# development
-$ npm run start
+$ docker compose up -d
+```
 
-# watch mode
+4. **Sync the database schema:**
+Push the Prisma schema to the database to create the necessary tables:
+```bash
+$ npx prisma db push
+```
+
+5. **Start the server:**
+Run the application in development/watch mode:
+```bash
 $ npm run start:dev
+```
 
-# production mode
-$ npm run start:prod
+## Running the app subsequently
+
+If you have already performed the initial setup, you just need to ensure the database is running before starting the server.
+
+1. **Ensure your database container is running:**
+```bash
+$ docker compose start
+```
+*(Or simply start the `mara_postgres` container from Docker Desktop).*
+
+2. **Start the server:**
+```bash
+$ npm run start:dev
 ```
 
 ## Run tests

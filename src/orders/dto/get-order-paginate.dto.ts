@@ -32,7 +32,7 @@ export class GetOrdersDto {
 
   @IsOptional()
   @IsUUID()
-  operatorId?: string;
+  supervisorId?: string;
 
   @IsOptional()
   @IsUUID()

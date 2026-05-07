@@ -4,6 +4,7 @@ import {
   Body,
   Get,
   Patch,
+  Delete,
   Param,
   Req,
   Query,
@@ -12,7 +13,6 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user';
 import { UpdateUserDto } from './dto/update-user';
 import { UseGuards } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
 import { AuthUser } from 'src/auth/models/auth-user';
 import { GetUsersDto } from './dto/get-user.dto';
@@ -40,17 +40,10 @@ export class Usercontroller {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('managers')
-  async getManagers(@Req() req: Request) {
+  @Get('supervisors')
+  async getSupervisors(@Req() req: Request) {
     const user = req.user as AuthUser;
-    return this.userService.findManagers(user);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('operators')
-  async getOperators(@Req() req: Request, @Query() query: GetUsersDto) {
-    const user = req.user as AuthUser;
-    return this.userService.findOperators(user, query.strict);
+    return this.userService.findSupervisors(user);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -58,5 +51,11 @@ export class Usercontroller {
   async getCashiers(@Req() req: Request, @Query() query: GetUsersDto) {
     const user = req.user as AuthUser;
     return this.userService.findCashiers(user, query.strict);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  async deleteUser(@Param('id') id: string) {
+    return this.userService.softDelete(id);
   }
 }

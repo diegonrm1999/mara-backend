@@ -16,6 +16,15 @@ function capitalizeWords(text: string): string {
     .join(' ');
 }
 
+interface ReniecResponse {
+  success: boolean;
+  data: {
+    nombres: string;
+    apellido_paterno: string;
+    apellido_materno: string;
+  };
+}
+
 @Injectable()
 export class ClientsService {
   constructor(
@@ -31,6 +40,7 @@ export class ClientsService {
         phone: dto.clientPhone,
         email: dto.clientEmail,
         shopId,
+        deletedAt: null, // Restore if soft-deleted
       },
       create: {
         dni: dto.clientDni,
@@ -82,7 +92,7 @@ export class ClientsService {
 
   async findByDni(dni: string): Promise<Partial<Client>> {
     const client = await this.prisma.client.findFirst({
-      where: { dni },
+      where: { dni, deletedAt: null },
       select: { dni: true, name: true, phone: true, email: true },
     });
     if (client) return client;
@@ -124,7 +134,7 @@ export class ClientsService {
 
   async findAll(user: AuthUser) {
     return await this.prisma.client.findMany({
-      where: { shopId: user.shopId },
+      where: { shopId: user.shopId, deletedAt: null },
     });
   }
 
@@ -183,8 +193,21 @@ export class ClientsService {
     };
   }
 
+  async softDelete(id: string) {
+    const client = await this.prisma.client.findFirst({
+      where: { id, deletedAt: null },
+    });
+    if (!client) {
+      throw new Error('Client not found');
+    }
+    return await this.prisma.client.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+  }
+
   private buildWhereClause(shopId: string, filters: GetClientsDto) {
-    const where: any = { shopId };
+    const where: any = { shopId, deletedAt: null };
     if (filters.search) {
       where.OR = [
         {

@@ -1,5 +1,6 @@
 export enum Role {
-  Specialist,
-  Cashier,
-  Operator
+  Stylist = 'Stylist',
+  Cashier = 'Cashier',
+  Supervisor = 'Supervisor',
+  Admin = 'Admin',
 }

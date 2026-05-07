@@ -1,4 +1,4 @@
-import { IsString, IsNumber, Min, Max } from 'class-validator';
+import { IsString, IsNumber, IsOptional, Min, Max } from 'class-validator';
 export class TreatmentDto {
   @IsString()
   name: string;
@@ -7,4 +7,8 @@ export class TreatmentDto {
   @Min(0)
   @Max(100)
   percentage: number;
+
+  @IsNumber()
+  @IsOptional()
+  basePrice?: number;
 }
