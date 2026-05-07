@@ -71,7 +71,7 @@ export class PdfService {
 
     doc.fontSize(7).font('Helvetica');
 
-    doc.text(`CLIENTE: ${data.clientName}`, doc.x, doc.y);
+    doc.text(`CLIENTE: ${data.clientFirstName} ${data.clientLastName}`, doc.x, doc.y);
 
     const currentY = doc.y;
     doc.text(`FECHA EMISION: ${data.date}`, doc.x, currentY, {

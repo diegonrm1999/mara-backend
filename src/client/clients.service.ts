@@ -33,10 +33,13 @@ export class ClientsService {
   ) {}
 
   async upsertOrderClient(dto: CreateOrderDto, shopId: string) {
+    const { clientFirstName: firstName, clientLastName: lastName } = dto;
+
     const client = await this.prisma.client.upsert({
       where: { dni: dto.clientDni },
       update: {
-        name: dto.clientName,
+        firstName,
+        lastName,
         phone: dto.clientPhone,
         email: dto.clientEmail,
         shopId,
@@ -44,7 +47,8 @@ export class ClientsService {
       },
       create: {
         dni: dto.clientDni,
-        name: dto.clientName,
+        firstName,
+        lastName,
         phone: dto.clientPhone,
         email: dto.clientEmail,
         shopId,
@@ -59,11 +63,12 @@ export class ClientsService {
     currentDni: string,
     shopId: string,
   ): Promise<string> {
-    const { clientDni, clientName, clientPhone, clientEmail } = dto;
+    const { clientDni, clientFirstName: firstName, clientLastName: lastName, clientPhone, clientEmail } = dto;
+
     if (clientDni === currentDni) {
       await this.prisma.client.update({
         where: { id: clientId },
-        data: { name: clientName, phone: clientPhone, email: clientEmail },
+        data: { firstName, lastName, phone: clientPhone, email: clientEmail },
       });
       return clientId;
     }
@@ -73,14 +78,15 @@ export class ClientsService {
     if (existingClient) {
       await this.prisma.client.update({
         where: { id: existingClient.id },
-        data: { name: clientName, phone: clientPhone, email: clientEmail },
+        data: { firstName, lastName, phone: clientPhone, email: clientEmail },
       });
       return existingClient.id;
     }
     const newClient = await this.prisma.client.create({
       data: {
         dni: clientDni,
-        name: clientName,
+        firstName,
+        lastName,
         phone: clientPhone,
         email: clientEmail,
         shopId,
@@ -93,7 +99,7 @@ export class ClientsService {
   async findByDni(dni: string): Promise<Partial<Client>> {
     const client = await this.prisma.client.findFirst({
       where: { dni, deletedAt: null },
-      select: { dni: true, name: true, phone: true, email: true },
+      select: { dni: true, firstName: true, lastName: true, phone: true, email: true },
     });
     if (client) return client;
 
@@ -120,12 +126,10 @@ export class ClientsService {
       const apellidoPaterno = response.data.data.apellido_paterno || '';
       const apellidoMaterno = response.data.data.apellido_materno || '';
 
-      const fullName = capitalizeWords(
-        `${nombres} ${apellidoPaterno} ${apellidoMaterno}`,
-      );
       return {
         dni,
-        name: fullName,
+        firstName: capitalizeWords(nombres),
+        lastName: capitalizeWords(`${apellidoPaterno} ${apellidoMaterno}`.trim()),
       };
     } catch (error) {
       throw new Error('Cliente no encontrado ni en la BD ni en Reniec');
@@ -151,11 +155,12 @@ export class ClientsService {
         where,
         skip,
         take: limit,
-        orderBy: [{ name: 'asc' }],
+        orderBy: [{ firstName: 'asc' }],
         select: {
           id: true,
           dni: true,
-          name: true,
+          firstName: true,
+          lastName: true,
           phone: true,
           email: true,
           createdAt: true,

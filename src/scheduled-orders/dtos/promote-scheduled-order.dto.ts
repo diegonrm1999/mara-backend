@@ -24,7 +24,11 @@ export class NewClientDto {
 
   @IsString()
   @IsNotEmpty()
-  name: string;
+  firstName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  lastName: string;
 
   @IsOptional()
   @IsString()

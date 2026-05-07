@@ -57,7 +57,12 @@ export class GetOrdersDto {
   @IsOptional()
   @IsString()
   @MaxLength(50)
-  clientName?: string;
+  clientFirstName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  clientLastName?: string;
 
   @IsOptional()
   @Transform(({ value }) => parseInt(value))

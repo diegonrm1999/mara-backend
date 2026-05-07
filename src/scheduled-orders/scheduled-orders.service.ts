@@ -304,7 +304,8 @@ export class ScheduledOrdersService {
           client: {
             select: {
               id: true,
-              name: true,
+              firstName: true,
+              lastName: true,
               dni: true,
             },
           },
@@ -399,7 +400,8 @@ export class ScheduledOrdersService {
           const newClient = await tx.client.create({
             data: {
               dni: dto.newClient.dni,
-              name: dto.newClient.name,
+              firstName: dto.newClient.firstName,
+              lastName: dto.newClient.lastName,
               phone: dto.newClient.phone,
               email: dto.newClient.email,
               shopId: scheduledOrder.shopId,
@@ -476,7 +478,7 @@ export class ScheduledOrdersService {
             select: { id: true, firstName: true, lastName: true },
           },
           client: {
-            select: { id: true, name: true, dni: true },
+            select: { id: true, firstName: true, lastName: true, dni: true },
           },
         },
       });

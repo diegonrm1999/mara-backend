@@ -1,7 +1,8 @@
 export interface OrderReceiptData {
   orderNumber: string;
   ticketNumber: string;
-  clientName: string;
+  clientFirstName: string;
+  clientLastName: string;
   clientEmail: string;
   shopName: string;
   shopAddress1: string;

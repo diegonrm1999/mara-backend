@@ -29,7 +29,11 @@ export class CreateOrderDto {
 
   @IsString()
   @IsNotEmpty()
-  clientName: string;
+  clientFirstName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  clientLastName: string;
 
   @IsOptional()
   @IsString()

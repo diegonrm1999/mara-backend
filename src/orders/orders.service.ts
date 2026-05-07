@@ -240,7 +240,8 @@ export class OrdersService {
         client: {
           select: {
             id: true,
-            name: true,
+            firstName: true,
+            lastName: true,
             dni: true,
             phone: true,
             email: true,
@@ -362,7 +363,8 @@ export class OrdersService {
       client: {
         select: {
           id: true,
-          name: true,
+          firstName: true,
+          lastName: true,
           dni: true,
           phone: true,
           email: true,
@@ -413,7 +415,8 @@ export class OrdersService {
         },
         client: {
           select: {
-            name: true,
+            firstName: true,
+            lastName: true,
           },
         },
       },
@@ -448,7 +451,8 @@ export class OrdersService {
           client: {
             select: {
               id: true,
-              name: true,
+              firstName: true,
+              lastName: true,
               dni: true,
               phone: true,
               email: true,
@@ -651,7 +655,8 @@ export class OrdersService {
     return {
       orderNumber: order.orderNumber.toString(),
       ticketNumber: order.ticketNumber || '',
-      clientName: 'Diego Narrea Mori',
+      clientFirstName: order.client.firstName || 'Diego',
+      clientLastName: order.client.lastName || 'Narrea Mori',
       clientEmail: order.client.email,
       shopName: order.shop.name,
       shopAddress1: 'JR. UCAYALI # 724 - GALERIA BARRIO CHINO',
@@ -696,7 +701,7 @@ export class OrdersService {
     }
     if (!order.client.email) {
       throw new Error(
-        `El cliente "${order.client.name}" no tiene email registrado`,
+        `El cliente "${order.client.firstName} ${order.client.lastName}" no tiene email registrado`,
       );
     }
   }
