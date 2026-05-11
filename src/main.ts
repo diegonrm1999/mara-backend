@@ -11,7 +11,7 @@ async function bootstrap() {
     ? process.env.ALLOWED_ORIGINS.split(',')
     : [];
   if (process.env.NODE_ENV === 'development') {
-    allowedOrigins.push('http://localhost:3000', 'http://localhost:3001');
+    allowedOrigins.push('http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173');
   }
   app.enableCors({
     origin: (origin, callback) => {
@@ -24,7 +24,13 @@ async function bootstrap() {
       return callback(new Error('CORS blocked: Not allowed by policy'), false);
     },
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'x-shop-id',
+      'x-public-key',
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     exposedHeaders: ['Set-Cookie'],
   });

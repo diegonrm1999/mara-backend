@@ -10,11 +10,13 @@ datasource db {
 model Shop {
   id              String @id @default(uuid())
   name            String
+  publicApiKey    String @unique @default(uuid()) // Key for frontend public access
   lastOrderNumber Int    @default(0)
 
   users                  User[]
   clients                Client[]
   treatments             Treatment[]
+  treatmentCategories    TreatmentCategory[]
   orders                 Order[]
   scheduledOrders        ScheduledOrder[]
   userSchedules          UserSchedule[]
@@ -71,11 +73,32 @@ model Client {
   @@index([shopId, firstName, lastName], name: "clients_shop_name")
 }
 
+model TreatmentCategory {
+  id           String @id @default(uuid())
+  name         String
+  displayOrder Int    @default(0)
+
+  treatments Treatment[]
+
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@unique([shopId, name])
+}
+
 model Treatment {
-  id         String @id @default(uuid())
-  name       String
-  percentage Float
-  basePrice  Float?
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  percentage  Float
+  basePrice   Float?
+
+  categoryId String?
+  category   TreatmentCategory? @relation(fields: [categoryId], references: [id])
 
   orderTreatments          OrderTreatment[]
   scheduledOrderTreatments ScheduledOrderTreatment[]

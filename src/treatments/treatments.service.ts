@@ -11,10 +11,13 @@ export class TreatmentsService {
     return this.prisma.treatment.create({
       data: {
         name: dto.name,
+        description: dto.description,
+        categoryId: dto.categoryId,
         percentage: dto.percentage,
         basePrice: dto.basePrice,
         shopId: user.shopId,
       },
+      include: { category: true },
     });
   }
 
@@ -23,9 +26,12 @@ export class TreatmentsService {
       where: { id },
       data: {
         name: dto.name,
+        description: dto.description,
+        categoryId: dto.categoryId,
         percentage: dto.percentage,
         basePrice: dto.basePrice,
       },
+      include: { category: true },
     });
   }
 
@@ -35,9 +41,11 @@ export class TreatmentsService {
         shopId: user.shopId,
         deletedAt: null,
       },
-      orderBy: {
-        name: 'asc',
-      },
+      include: { category: true },
+      orderBy: [
+        { category: { displayOrder: 'asc' } },
+        { name: 'asc' },
+      ],
     });
   }
 

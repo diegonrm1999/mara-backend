@@ -3,6 +3,14 @@ export class TreatmentDto {
   @IsString()
   name: string;
 
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsString()
+  @IsOptional()
+  categoryId?: string;
+
   @IsNumber()
   @Min(0)
   @Max(100)

@@ -27,6 +27,7 @@ import { EmailModule } from './email/email.module';
 import { ScheduledOrdersModule } from './scheduled-orders/scheduled-orders.module';
 import { UserSchedulesModule } from './user-schedules/user-schedules.module';
 import { UserTreatmentsModule } from './user-treatments/user-treatments.module';
+import { TreatmentCategoriesModule } from './treatment-categories/treatment-categories.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { UserTreatmentsModule } from './user-treatments/user-treatments.module';
     ScheduledOrdersModule,
     UserSchedulesModule,
     UserTreatmentsModule,
+    TreatmentCategoriesModule,
   ],
   controllers: [
     AppController,

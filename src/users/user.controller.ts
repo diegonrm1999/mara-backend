@@ -17,11 +17,13 @@ import { Request } from 'express';
 import { AuthUser } from 'src/auth/models/auth-user';
 import { GetUsersDto } from './dto/get-user.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { MasterKeyGuard } from 'src/auth/master-key.guard';
 
 @Controller('users')
 export class Usercontroller {
   constructor(private readonly userService: UsersService) {}
 
+  @UseGuards(MasterKeyGuard)
   @Post('create')
   async createUser(@Body() dto: CreateUserDto) {
     return await this.userService.createUser(dto);

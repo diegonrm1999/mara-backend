@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
   Req,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ScheduledOrdersService } from './scheduled-orders.service';
 import { CreateScheduledOrderDto } from './dtos/create-scheduled-order.dto';
@@ -15,6 +16,7 @@ import { PromoteScheduledOrderDto } from './dtos/promote-scheduled-order.dto';
 import { QueryScheduledOrdersDto } from './dtos/query-scheduled-orders.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { ScheduledOrderStatus } from '@prisma/client';
+import { PublicShopGuard } from 'src/auth/public-shop.guard';
 
 @Controller('scheduled-orders')
 export class ScheduledOrdersController {
@@ -23,22 +25,34 @@ export class ScheduledOrdersController {
   ) {}
 
   // ─────────────────────────────────────────────────────────────
-  // PUBLIC endpoints (no authentication required)
+  // PUBLIC endpoints (no user authentication required, but Shop validated)
   // ─────────────────────────────────────────────────────────────
 
+  @UseGuards(PublicShopGuard)
   @Get('public/availability')
   async getAvailability(
     @Query('shopId') shopId: string,
     @Query('treatmentIds') treatmentIds: string | string[],
     @Query('date') date: string,
+    @Req() req: any,
   ) {
-    // treatmentIds can come as a single string or array from query params
+    // Validate that the query shopId matches the one authorized in headers
+    if (shopId !== req.publicShopId) {
+      throw new UnauthorizedException('El Shop ID no coincide con la llave pública');
+    }
+
     const ids = Array.isArray(treatmentIds) ? treatmentIds : [treatmentIds];
     return this.scheduledOrdersService.getAvailability(shopId, ids, date);
   }
 
+  @UseGuards(PublicShopGuard)
   @Post('public')
-  async createPublicBooking(@Body() dto: CreateScheduledOrderDto) {
+  async createPublicBooking(@Body() dto: CreateScheduledOrderDto, @Req() req: any) {
+    // Validate that the body shopId matches the one authorized in headers
+    if (dto.shopId !== req.publicShopId) {
+      throw new UnauthorizedException('El Shop ID no coincide con la llave pública');
+    }
+
     return this.scheduledOrdersService.createPublicBooking(dto);
   }
 

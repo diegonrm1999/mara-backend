@@ -15,7 +15,7 @@ export class EmailService {
     private configService: ConfigService,
     private pdfService: PdfService,
   ) {
-    this.initializeSESClient();
+    //this.initializeSESClient();
   }
 
   private initializeSESClient(): void {

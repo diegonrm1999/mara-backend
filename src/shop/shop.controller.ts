@@ -1,8 +1,10 @@
-import { Controller, Post, Body, Get, Patch, Param, Req } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
 import { ShopService } from './shop.service';
 import { CreateShopDto } from './dto/create-shop';
+import { MasterKeyGuard } from '../auth/master-key.guard';
 
 @Controller('shops')
+@UseGuards(MasterKeyGuard)
 export class ShopController {
   constructor(private readonly shopService: ShopService) {}
 
