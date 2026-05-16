@@ -13,8 +13,8 @@ import {
   ScheduleExceptionType,
 } from '@prisma/client';
 
-const SLOT_INTERVAL_MINUTES = 60;
-const DEFAULT_TREATMENT_DURATION = 60;
+const SLOT_INTERVAL_MINUTES = 120;
+const DEFAULT_TREATMENT_DURATION = 120;
 
 @Injectable()
 export class ScheduledOrdersService {
