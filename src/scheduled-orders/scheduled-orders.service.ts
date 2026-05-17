@@ -12,6 +12,7 @@ import {
   ScheduledOrderStatus,
   ScheduleExceptionType,
 } from '@prisma/client';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 const SLOT_INTERVAL_MINUTES = 120;
 const DEFAULT_TREATMENT_DURATION = 120;
@@ -74,8 +75,9 @@ export class ScheduledOrdersService {
     const totalDuration = treatmentIds.length * DEFAULT_TREATMENT_DURATION;
 
     // 3. Get existing bookings for the date
-    const startOfDay = new Date(`${date}T00:00:00.000Z`);
-    const endOfDay = new Date(`${date}T23:59:59.999Z`);
+    const timeZone = 'America/Lima';
+    const startOfDay = fromZonedTime(`${date}T00:00:00`, timeZone);
+    const endOfDay = fromZonedTime(`${date}T23:59:59.999`, timeZone);
 
     const existingBookings = await this.prisma.scheduledOrder.findMany({
       where: {
@@ -271,8 +273,9 @@ export class ScheduledOrdersService {
     if (query.status) where.status = query.status;
     if (query.stylistId) where.stylistId = query.stylistId;
     if (query.date) {
-      const startOfDay = new Date(`${query.date}T00:00:00.000Z`);
-      const endOfDay = new Date(`${query.date}T23:59:59.999Z`);
+      const timeZone = 'America/Lima';
+      const startOfDay = fromZonedTime(`${query.date}T00:00:00`, timeZone);
+      const endOfDay = fromZonedTime(`${query.date}T23:59:59.999`, timeZone);
       where.scheduledAt = { gte: startOfDay, lte: endOfDay };
     }
 
@@ -557,7 +560,8 @@ export class ScheduledOrdersService {
     return `${h}:${m}`;
   }
 
-  private dateToMinutes(date: Date): number {
-    return date.getUTCHours() * 60 + date.getUTCMinutes();
+  private dateToMinutes(date: Date, timeZone: string = 'America/Lima'): number {
+    const zonedDate = toZonedTime(date, timeZone);
+    return zonedDate.getHours() * 60 + zonedDate.getMinutes();
   }
 }
