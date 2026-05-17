@@ -93,11 +93,11 @@ export class ScheduledOrdersService {
     });
 
     // 4. Generate available slots per stylist
-    const allSlots = new Set<string>();
+    const globalSlotsMap = new Map<string, boolean>();
     const stylistAvailability: {
       stylistId: string;
       stylistName: string;
-      slots: string[];
+      slots: { time: string; available: boolean }[];
     }[] = [];
 
     for (const user of filteredUsers) {
@@ -131,7 +131,7 @@ export class ScheduledOrdersService {
       );
 
       // Generate slots
-      const availableSlots: string[] = [];
+      const stylistSlots: { time: string; available: boolean }[] = [];
       for (const block of scheduleBlocks) {
         const blockStart = this.timeToMinutes(block.startTime);
         const blockEnd = this.timeToMinutes(block.endTime);
@@ -150,26 +150,33 @@ export class ScheduledOrdersService {
             return slotStart < bookingEnd && slotEnd > bookingStart;
           });
 
-          if (!hasConflict) {
-            const slotTime = this.minutesToTime(slotStart);
-            availableSlots.push(slotTime);
-            allSlots.add(slotTime);
+          const slotTime = this.minutesToTime(slotStart);
+          const isAvailable = !hasConflict;
+
+          stylistSlots.push({ time: slotTime, available: isAvailable });
+
+          if (!globalSlotsMap.has(slotTime) || isAvailable) {
+            globalSlotsMap.set(slotTime, globalSlotsMap.get(slotTime) || isAvailable);
           }
         }
       }
 
-      if (availableSlots.length > 0) {
+      if (stylistSlots.length > 0) {
         stylistAvailability.push({
           stylistId: user.id,
           stylistName: `${user.firstName} ${user.lastName}`,
-          slots: availableSlots,
+          slots: stylistSlots,
         });
       }
     }
 
+    const allSlots = Array.from(globalSlotsMap.entries())
+      .map(([time, available]) => ({ time, available }))
+      .sort((a, b) => a.time.localeCompare(b.time));
+
     return {
       date,
-      slots: Array.from(allSlots).sort(),
+      slots: allSlots,
       stylists: stylistAvailability,
     };
   }
