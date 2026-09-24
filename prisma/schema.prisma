@@ -13,16 +13,19 @@ model Shop {
   publicApiKey    String @unique @default(uuid()) // Key for frontend public access
   lastOrderNumber Int    @default(0)
 
-  users                  User[]
-  clients                Client[]
-  treatments             Treatment[]
-  treatmentCategories    TreatmentCategory[]
-  orders                 Order[]
-  scheduledOrders        ScheduledOrder[]
-  userSchedules          UserSchedule[]
+  users               User[]
+  clients             Client[]
+  treatments          Treatment[]
+  treatmentCategories TreatmentCategory[]
+  orders              Order[]
+  scheduledOrders     ScheduledOrder[]
+  userSchedules       UserSchedule[]
+  productCategories   ProductCategory[]
+  products            Product[]
+  productVariants     ProductVariant[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 }
 
@@ -38,27 +41,27 @@ model User {
   cashierOrders    Order[] @relation("CashierUser")
   supervisorOrders Order[] @relation("SupervisorUser")
 
-  treatments               UserTreatment[]
-  schedules                UserSchedule[]
-  scheduleExceptions       UserScheduleException[]
-  createdScheduledOrders   ScheduledOrder[]        @relation("ScheduledOrderCreator")
-  assignedScheduledOrders  ScheduledOrder[]        @relation("ScheduledOrderStylist")
+  treatments              UserTreatment[]
+  schedules               UserSchedule[]
+  scheduleExceptions      UserScheduleException[]
+  createdScheduledOrders  ScheduledOrder[]        @relation("ScheduledOrderCreator")
+  assignedScheduledOrders ScheduledOrder[]        @relation("ScheduledOrderStylist")
 
   shopId String
   shop   Shop   @relation(fields: [shopId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 }
 
 model Client {
-  id    String  @id @default(uuid())
-  dni   String  @unique
-  firstName  String
+  id        String  @id @default(uuid())
+  dni       String  @unique
+  firstName String
   lastName  String
-  phone String?
-  email String?
+  phone     String?
+  email     String?
 
   orders          Order[]
   scheduledOrders ScheduledOrder[]
@@ -66,8 +69,8 @@ model Client {
   shopId String
   shop   Shop   @relation(fields: [shopId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   @@index([shopId, firstName, lastName], name: "clients_shop_name")
@@ -83,8 +86,8 @@ model TreatmentCategory {
   shopId String
   shop   Shop   @relation(fields: [shopId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   @@unique([shopId, name])
@@ -107,8 +110,8 @@ model Treatment {
   shopId String
   shop   Shop   @relation(fields: [shopId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 }
 
@@ -191,11 +194,11 @@ model Order {
 
   treatments      OrderTreatment[]
   totalPrice      Float
-  stylistEarnings Float  @default(0)
+  stylistEarnings Float            @default(0)
 
   paidAmount    Float?
   paymentMethod PaymentMethod?
-  status        OrderStatus @default(Created)
+  status        OrderStatus    @default(Created)
   orderNumber   Int
   ticketNumber  String?
 
@@ -228,7 +231,7 @@ model ScheduledOrder {
   stylist   User?   @relation("ScheduledOrderStylist", fields: [stylistId], references: [id])
 
   createdById String?
-  createdBy   User?   @relation("ScheduledOrderCreator", fields: [createdById], references: [id])
+  createdBy   User?                @relation("ScheduledOrderCreator", fields: [createdById], references: [id])
   source      ScheduledOrderSource @default(Web)
 
   scheduledAt     DateTime
@@ -242,8 +245,8 @@ model ScheduledOrder {
   orderId String? @unique
   order   Order?  @relation(fields: [orderId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   @@index([shopId, scheduledAt], name: "scheduled_orders_shop_date")
@@ -261,6 +264,89 @@ model ScheduledOrderTreatment {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model ProductCategory {
+  id           String @id @default(uuid())
+  name         String
+  displayOrder Int    @default(0)
+
+  products Product[]
+
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([shopId, name])
+}
+
+// A Product is the "parent" that groups the shared name/description/category.
+// It is never sold directly — every Product has at least one ProductVariant,
+// which is the actual purchasable/stocked/priced/photographed unit. This keeps
+// a single shape for "sellable thing" (ProductVariant) for the future cart,
+// instead of branching between "simple products" and "products with variants".
+model Product {
+  id           String  @id @default(uuid())
+  name         String
+  description  String?
+  active       Boolean @default(true)
+  displayOrder Int     @default(0)
+
+  categoryId String?
+  category   ProductCategory? @relation(fields: [categoryId], references: [id])
+
+  variants ProductVariant[]
+
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([shopId, categoryId, displayOrder])
+  @@index([shopId, active])
+}
+
+// The sellable unit: a specific SKU/variant of a Product (e.g. a color or
+// size). Image URL is intentionally NOT stored here — it is derived from
+// `id` following the fixed CDN convention (see products image util).
+model ProductVariant {
+  id         String  @id @default(uuid())
+  sku        String?
+  // Free-form variant attributes, e.g. { "color": "Rojo", "size": "M" }.
+  attributes Json?
+
+  price    Float
+  currency String @default("PEN")
+
+  // Available stock is `stock - reservedStock`. `reservedStock` is not used
+  // yet (no cart/checkout in this phase) but is added now so a future cart
+  // reservation flow only needs to start writing to it, not migrate for it.
+  stock         Int @default(0)
+  reservedStock Int @default(0)
+
+  active       Boolean @default(true)
+  displayOrder Int     @default(0)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  // Denormalized from product.shopId (same convention as Order/Client) so
+  // shop-scoped stock/catalog queries never need to join through Product.
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([shopId, sku])
+  @@index([productId])
+  @@index([shopId, active])
 }
 
 enum Role {

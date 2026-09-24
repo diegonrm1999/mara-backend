@@ -28,6 +28,8 @@ import { ScheduledOrdersModule } from './scheduled-orders/scheduled-orders.modul
 import { UserSchedulesModule } from './user-schedules/user-schedules.module';
 import { UserTreatmentsModule } from './user-treatments/user-treatments.module';
 import { TreatmentCategoriesModule } from './treatment-categories/treatment-categories.module';
+import { ProductsModule } from './products/products.module';
+import { ProductCategoriesModule } from './product-categories/product-categories.module';
 
 @Module({
   imports: [
@@ -48,6 +50,8 @@ import { TreatmentCategoriesModule } from './treatment-categories/treatment-cate
     UserSchedulesModule,
     UserTreatmentsModule,
     TreatmentCategoriesModule,
+    ProductsModule,
+    ProductCategoriesModule,
   ],
   controllers: [
     AppController,
