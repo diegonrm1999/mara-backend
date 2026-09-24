@@ -77,7 +77,6 @@ export class ProductCategoriesService {
   async softDelete(id: string, user: AuthUser) {
     await this.findOwned(id, user.shopId);
 
-    // Unlink products from this category and soft-delete it atomically.
     const [, category] = await this.prisma.$transaction([
       this.prisma.product.updateMany({
         where: { categoryId: id },

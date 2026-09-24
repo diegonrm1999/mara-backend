@@ -283,11 +283,6 @@ model ProductCategory {
   @@unique([shopId, name])
 }
 
-// A Product is the "parent" that groups the shared name/description/category.
-// It is never sold directly — every Product has at least one ProductVariant,
-// which is the actual purchasable/stocked/priced/photographed unit. This keeps
-// a single shape for "sellable thing" (ProductVariant) for the future cart,
-// instead of branching between "simple products" and "products with variants".
 model Product {
   id           String  @id @default(uuid())
   name         String
@@ -311,21 +306,14 @@ model Product {
   @@index([shopId, active])
 }
 
-// The sellable unit: a specific SKU/variant of a Product (e.g. a color or
-// size). Image URL is intentionally NOT stored here — it is derived from
-// `id` following the fixed CDN convention (see products image util).
 model ProductVariant {
   id         String  @id @default(uuid())
   sku        String?
-  // Free-form variant attributes, e.g. { "color": "Rojo", "size": "M" }.
   attributes Json?
 
   price    Float
   currency String @default("PEN")
 
-  // Available stock is `stock - reservedStock`. `reservedStock` is not used
-  // yet (no cart/checkout in this phase) but is added now so a future cart
-  // reservation flow only needs to start writing to it, not migrate for it.
   stock         Int @default(0)
   reservedStock Int @default(0)
 
@@ -335,8 +323,6 @@ model ProductVariant {
   productId String
   product   Product @relation(fields: [productId], references: [id])
 
-  // Denormalized from product.shopId (same convention as Order/Client) so
-  // shop-scoped stock/catalog queries never need to join through Product.
   shopId String
   shop   Shop   @relation(fields: [shopId], references: [id])
 

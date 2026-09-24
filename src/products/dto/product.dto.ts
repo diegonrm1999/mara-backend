@@ -28,9 +28,6 @@ export class CreateProductDto {
   @Min(0)
   displayOrder?: number;
 
-  // At least one variant is required (e.g. colors/sizes, or a single
-  // attribute-less variant for a "simple" product). Price is never defaulted
-  // implicitly — it must always be set explicitly by the caller.
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })

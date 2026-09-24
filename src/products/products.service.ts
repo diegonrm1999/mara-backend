@@ -43,10 +43,6 @@ const PRODUCT_INCLUDE = {
 export class ProductsService {
   constructor(private prisma: PrismaService) {}
 
-  // ─────────────────────────────────────────────────────────────
-  // INTERNAL: Products
-  // ─────────────────────────────────────────────────────────────
-
   async create(dto: CreateProductDto, user: AuthUser) {
     if (dto.categoryId) {
       await this.assertCategoryBelongsToShop(dto.categoryId, user.shopId);
@@ -151,10 +147,6 @@ export class ProductsService {
     return product;
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // PUBLIC: Catalog for the website
-  // ─────────────────────────────────────────────────────────────
-
   async findAllPublic(query: QueryPublicProductsDto) {
     const { page = 1, limit = 20, shopId } = query;
     const skip = (page - 1) * limit;
@@ -162,10 +154,6 @@ export class ProductsService {
     const variantFilter: Prisma.ProductVariantWhereInput = {
       active: true,
       deletedAt: null,
-      // reservedStock is always 0 today (no cart/checkout yet). Once a
-      // reservation flow writes to it, this must become a raw `stock >
-      // reservedStock` comparison — Prisma's query builder can't compare
-      // two columns of the same row directly.
       ...(query.inStockOnly && { stock: { gt: 0 } }),
     };
 
@@ -196,10 +184,6 @@ export class ProductsService {
 
     return this.paginate(products.map(mapProduct), total, page, limit);
   }
-
-  // ─────────────────────────────────────────────────────────────
-  // INTERNAL: Variants
-  // ─────────────────────────────────────────────────────────────
 
   async addVariant(productId: string, dto: CreateProductVariantDto, user: AuthUser) {
     const product = await this.findOwnedProduct(productId, user.shopId);
@@ -250,11 +234,6 @@ export class ProductsService {
     });
   }
 
-  // Atomic, conditional stock adjustment. The WHERE clause re-checks the
-  // stock invariant inside the same UPDATE statement, so two concurrent
-  // decrements can never both succeed past zero (no read-then-write race).
-  // This is the same primitive a future cart reservation step should reuse
-  // (moving units from `stock` into `reservedStock` instead of decrementing).
   async adjustStock(variantId: string, dto: AdjustVariantStockDto, user: AuthUser) {
     const variant = await this.findOwnedVariant(variantId, user.shopId);
 
@@ -281,10 +260,6 @@ export class ProductsService {
     });
     return mapVariant(updated);
   }
-
-  // ─────────────────────────────────────────────────────────────
-  // Helpers
-  // ─────────────────────────────────────────────────────────────
 
   private async findOwnedProduct(id: string, shopId: string) {
     const product = await this.prisma.product.findFirst({

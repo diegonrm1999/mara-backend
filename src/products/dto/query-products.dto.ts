@@ -33,7 +33,6 @@ class BaseQueryProductsDto {
 }
 
 export class QueryProductsDto extends BaseQueryProductsDto {
-  // Internal/admin listing only: include products marked inactive.
   @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()

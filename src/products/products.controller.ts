@@ -28,10 +28,6 @@ import { PublicShopGuard } from 'src/auth/public-shop.guard';
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
-  // ─────────────────────────────────────────────────────────────
-  // PUBLIC endpoints (website catalog)
-  // ─────────────────────────────────────────────────────────────
-
   @UseGuards(PublicShopGuard)
   @Get('public/all')
   findAllPublic(@Query() query: QueryPublicProductsDto, @Req() req: any) {
@@ -42,10 +38,6 @@ export class ProductsController {
     }
     return this.productsService.findAllPublic(query);
   }
-
-  // ─────────────────────────────────────────────────────────────
-  // INTERNAL endpoints (JWT required)
-  // ─────────────────────────────────────────────────────────────
 
   @UseGuards(JwtAuthGuard)
   @Get('all')
@@ -78,10 +70,6 @@ export class ProductsController {
     const user = req.user as AuthUser;
     return this.productsService.softDelete(id, user);
   }
-
-  // ─────────────────────────────────────────────────────────────
-  // INTERNAL: Variants
-  // ─────────────────────────────────────────────────────────────
 
   @UseGuards(JwtAuthGuard)
   @Post(':productId/variants')
