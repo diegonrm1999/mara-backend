@@ -5,6 +5,7 @@ import {
   Param,
   Body,
   UseGuards,
+  Get,
 } from '@nestjs/common';
 import { UserSchedulesService } from './user-schedules.service';
 import { CreateUserScheduleDto } from './dtos/create-user-schedule.dto';
@@ -17,6 +18,11 @@ export class UserSchedulesController {
   constructor(
     private readonly userSchedulesService: UserSchedulesService,
   ) {}
+
+  @Get(':userId')
+  async getSchedules(@Param('userId') userId: string) {
+    return this.userSchedulesService.findSchedulesByUser(userId);
+  }
 
   @Post()
   async createSchedule(@Body() dto: CreateUserScheduleDto) {

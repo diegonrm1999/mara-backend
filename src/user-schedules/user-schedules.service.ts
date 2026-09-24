@@ -19,6 +19,13 @@ export class UserSchedulesService {
     });
   }
 
+  async findSchedulesByUser(userId: string) {
+    return this.prisma.userSchedule.findMany({
+      where: { userId },
+      orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+    });
+  }
+
   async deleteSchedule(id: string) {
     const schedule = await this.prisma.userSchedule.findUnique({
       where: { id },
