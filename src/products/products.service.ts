@@ -185,6 +185,25 @@ export class ProductsService {
     return this.paginate(products.map(mapProduct), total, page, limit);
   }
 
+  async findOnePublic(id: string, shopId: string) {
+    const product = await this.prisma.product.findFirst({
+      where: { id, shopId, active: true, deletedAt: null },
+      include: {
+        category: true,
+        variants: {
+          where: { active: true, deletedAt: null },
+          orderBy: { displayOrder: 'asc' },
+        },
+      },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Producto no encontrado');
+    }
+
+    return mapProduct(product);
+  }
+
   async addVariant(productId: string, dto: CreateProductVariantDto, user: AuthUser) {
     const product = await this.findOwnedProduct(productId, user.shopId);
 

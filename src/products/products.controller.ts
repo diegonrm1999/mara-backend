@@ -39,6 +39,21 @@ export class ProductsController {
     return this.productsService.findAllPublic(query);
   }
 
+  @UseGuards(PublicShopGuard)
+  @Get('public/:id')
+  findOnePublic(
+    @Param('id') id: string,
+    @Query('shopId') shopId: string,
+    @Req() req: any,
+  ) {
+    if (shopId !== req.publicShopId) {
+      throw new UnauthorizedException(
+        'El Shop ID no coincide con la llave pública',
+      );
+    }
+    return this.productsService.findOnePublic(id, shopId);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('all')
   findAll(@Query() query: QueryProductsDto, @Req() req: Request) {
