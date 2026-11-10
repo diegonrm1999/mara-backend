@@ -13,8 +13,9 @@ export class PromoteTreatmentDto {
   @IsNotEmpty()
   treatmentId: string;
 
+  @IsOptional()
   @IsNumber()
-  price: number;
+  price?: number;
 }
 
 export class NewClientDto {

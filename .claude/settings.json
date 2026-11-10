@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npx ts-node run-prod-sql.ts:*)",
+      "Bash(railway:*)"
+    ],
+    "deny": ["Bash(rm:*)", "Bash(git push --force:*)"]
+  }
+}

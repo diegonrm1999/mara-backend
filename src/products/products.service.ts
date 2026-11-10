@@ -16,6 +16,7 @@ import { QueryProductsDto, QueryPublicProductsDto } from './dto/query-products.d
 import { AuthUser } from 'src/auth/models/auth-user';
 import { Prisma } from '@prisma/client';
 import { getProductVariantImageUrl } from './utils/product-image.util';
+import { PromotionsService } from 'src/promotions/promotions.service';
 
 function mapVariant<T extends { id: string; stock: number; reservedStock: number }>(
   variant: T,
@@ -41,7 +42,10 @@ const PRODUCT_INCLUDE = {
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private promotionsService: PromotionsService,
+  ) {}
 
   async create(dto: CreateProductDto, user: AuthUser) {
     if (dto.categoryId) {
@@ -127,7 +131,12 @@ export class ProductsService {
       this.prisma.product.count({ where }),
     ]);
 
-    return this.paginate(products.map(mapProduct), total, page, limit);
+    return this.paginate(
+      await this.withPricing(products.map(mapProduct), shopId),
+      total,
+      page,
+      limit,
+    );
   }
 
   async softDelete(id: string, user: AuthUser) {
@@ -182,7 +191,12 @@ export class ProductsService {
       this.prisma.product.count({ where }),
     ]);
 
-    return this.paginate(products.map(mapProduct), total, page, limit);
+    return this.paginate(
+      await this.withPricing(products.map(mapProduct), shopId),
+      total,
+      page,
+      limit,
+    );
   }
 
   async findOnePublic(id: string, shopId: string) {
@@ -201,7 +215,8 @@ export class ProductsService {
       throw new NotFoundException('Producto no encontrado');
     }
 
-    return mapProduct(product);
+    const [priced] = await this.withPricing([mapProduct(product)], shopId);
+    return priced;
   }
 
   async addVariant(productId: string, dto: CreateProductVariantDto, user: AuthUser) {
@@ -278,6 +293,27 @@ export class ProductsService {
       where: { id: variantId },
     });
     return mapVariant(updated);
+  }
+
+  private async withPricing<
+    T extends {
+      id: string;
+      categoryId: string | null;
+      variants: { price: number }[];
+    },
+  >(products: T[], shopId: string) {
+    const promotions = await this.promotionsService.getActive(shopId);
+    return products.map((product) => ({
+      ...product,
+      variants: product.variants.map((variant) => ({
+        ...variant,
+        pricing: this.promotionsService.resolveVariantPrice(
+          promotions,
+          variant,
+          product,
+        ),
+      })),
+    }));
   }
 
   private async findOwnedProduct(id: string, shopId: string) {

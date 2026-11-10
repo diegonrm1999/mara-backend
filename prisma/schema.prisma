@@ -23,6 +23,7 @@ model Shop {
   productCategories   ProductCategory[]
   products            Product[]
   productVariants     ProductVariant[]
+  promotions          Promotion[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -81,7 +82,8 @@ model TreatmentCategory {
   name         String
   displayOrder Int    @default(0)
 
-  treatments Treatment[]
+  treatments       Treatment[]
+  promotionTargets PromotionTarget[]
 
   shopId String
   shop   Shop   @relation(fields: [shopId], references: [id])
@@ -106,6 +108,7 @@ model Treatment {
   orderTreatments          OrderTreatment[]
   scheduledOrderTreatments ScheduledOrderTreatment[]
   userTreatments           UserTreatment[]
+  promotionTargets         PromotionTarget[]
 
   shopId String
   shop   Shop   @relation(fields: [shopId], references: [id])
@@ -167,8 +170,12 @@ model OrderTreatment {
   treatmentId String
   price       Float
 
-  order     Order     @relation(fields: [orderId], references: [id])
-  treatment Treatment @relation(fields: [treatmentId], references: [id])
+  originalPrice Float?
+  promotionId   String?
+
+  order     Order      @relation(fields: [orderId], references: [id])
+  treatment Treatment  @relation(fields: [treatmentId], references: [id])
+  promotion Promotion? @relation(fields: [promotionId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -271,7 +278,8 @@ model ProductCategory {
   name         String
   displayOrder Int    @default(0)
 
-  products Product[]
+  products         Product[]
+  promotionTargets PromotionTarget[]
 
   shopId String
   shop   Shop   @relation(fields: [shopId], references: [id])
@@ -293,7 +301,8 @@ model Product {
   categoryId String?
   category   ProductCategory? @relation(fields: [categoryId], references: [id])
 
-  variants ProductVariant[]
+  variants         ProductVariant[]
+  promotionTargets PromotionTarget[]
 
   shopId String
   shop   Shop   @relation(fields: [shopId], references: [id])
@@ -304,6 +313,59 @@ model Product {
 
   @@index([shopId, categoryId, displayOrder])
   @@index([shopId, active])
+}
+
+model Promotion {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+
+  discountType  PromotionDiscountType
+  discountValue Float
+
+  startsAt DateTime
+  endsAt   DateTime
+  active   Boolean  @default(true)
+
+  appliesToAllTreatments Boolean @default(false)
+  appliesToAllProducts   Boolean @default(false)
+
+  targets         PromotionTarget[]
+  orderTreatments OrderTreatment[]
+
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([shopId, active, startsAt, endsAt])
+}
+
+model PromotionTarget {
+  id          String    @id @default(uuid())
+  promotionId String
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+
+  treatmentId String?
+  treatment   Treatment? @relation(fields: [treatmentId], references: [id], onDelete: Cascade)
+
+  treatmentCategoryId String?
+  treatmentCategory   TreatmentCategory? @relation(fields: [treatmentCategoryId], references: [id], onDelete: Cascade)
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  productCategoryId String?
+  productCategory   ProductCategory? @relation(fields: [productCategoryId], references: [id], onDelete: Cascade)
+
+  @@index([promotionId])
+}
+
+enum PromotionDiscountType {
+  Percentage
+  FixedAmount
 }
 
 model ProductVariant {

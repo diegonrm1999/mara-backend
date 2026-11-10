@@ -22,7 +22,7 @@ Local env (`.env`): `DATABASE_URL`, `JWT_SECRET`, `PORT` (8080), `NODE_ENV`, `AL
 
 ## Architecture
 
-NestJS 10 + Prisma 6 (PostgreSQL) backend for "Mara Studio", a multi-tenant salon/beauty shop system (UI strings and errors are in Spanish). Deployed to Fly.io (`fly.toml`, app `dukarmo`) via the `Dockerfile`, whose `CMD` runs `npm run start:prod` so migrations are applied on boot.
+NestJS 10 + Prisma 6 (PostgreSQL) backend for "Mara Studio", a multi-tenant salon/beauty shop system (UI strings and errors are in Spanish). Deployed on Railway (a push triggers a deploy) via the `Dockerfile`, whose `CMD` runs `npm run start:prod` so migrations are applied on boot. `fly.toml` is a leftover from a previous Fly.io deployment.
 
 **Multi-tenancy:** everything hangs off `Shop`. The JWT payload carries `shopId`; `JwtStrategy.validate` exposes `{ id, email, rol, shopId }` as `req.user`, and services scope every query by `user.shopId` (e.g. `products.service.ts` checks that related categories belong to the shop before writing). Keep new queries shop-scoped and soft-delete aware (`deletedAt: null`).
 
@@ -36,6 +36,13 @@ NestJS 10 + Prisma 6 (PostgreSQL) backend for "Mara Studio", a multi-tenant salo
 **Realtime/integrations:** `OrdersGateway` (socket.io) pushes order events; `fcm` + `services/notification.service.ts` for push notifications; `email` (SES/nodemailer + handlebars), `pdf` (pdfkit/wkhtmltopdf), RENIEC lookup config in `src/config/reniec.config.ts`.
 
 **Data model** (`prisma/schema.prisma`): Shop, User (Role enum), Client, Treatment/TreatmentCategory, UserTreatment, UserSchedule(+Exception), Order/OrderTreatment, ScheduledOrder(+Treatment, with status/source enums), and the product catalog (ProductCategory, Product, ProductVariant with stock). Schema changes must ship with a migration in `prisma/migrations/`.
+
+## Production (Railway)
+
+- Never run anything against the production DB without first showing the exact SQL/command and waiting for explicit approval. Never act ahead of approval.
+- Forbidden: DELETE, DROP, TRUNCATE and destructive ALTER. Only SELECT, INSERT and UPDATE bounded by a WHERE.
+- Never run migrations, `prisma db push` or `prisma migrate deploy`.
+- Never `git push`: a push triggers a Railway deploy.
 
 ## Gotchas
 

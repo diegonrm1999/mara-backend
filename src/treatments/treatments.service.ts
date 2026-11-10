@@ -2,10 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TreatmentDto } from './dto/treatment';
 import { AuthUser } from 'src/auth/models/auth-user';
+import { PromotionsService } from 'src/promotions/promotions.service';
 
 @Injectable()
 export class TreatmentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private promotionsService: PromotionsService,
+  ) {}
 
   create(dto: TreatmentDto, user: AuthUser) {
     return this.prisma.treatment.create({
@@ -35,18 +39,29 @@ export class TreatmentsService {
     });
   }
 
-  findAll(user: AuthUser) {
-    return this.prisma.treatment.findMany({
-      where: {
-        shopId: user.shopId,
-        deletedAt: null,
-      },
-      include: { category: true },
-      orderBy: [
-        { category: { displayOrder: 'asc' } },
-        { name: 'asc' },
-      ],
-    });
+  async findAll(user: AuthUser) {
+    const [treatments, promotions] = await Promise.all([
+      this.prisma.treatment.findMany({
+        where: {
+          shopId: user.shopId,
+          deletedAt: null,
+        },
+        include: { category: true },
+        orderBy: [
+          { category: { displayOrder: 'asc' } },
+          { name: 'asc' },
+        ],
+      }),
+      this.promotionsService.getActive(user.shopId),
+    ]);
+
+    return treatments.map((treatment) => ({
+      ...treatment,
+      pricing: this.promotionsService.resolveTreatmentPrice(
+        promotions,
+        treatment,
+      ),
+    }));
   }
 
   async validateTreatments(treatmentIds: Set<string>): Promise<void> {

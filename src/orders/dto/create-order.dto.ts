@@ -12,9 +12,10 @@ export class OrderTreatmentDto {
   @IsString()
   treatmentId: string;
 
+  @IsOptional()
   @IsNumber()
   @Min(0.01, { message: 'El precio debe ser mayor a 0' })
-  price: number;
+  price?: number;
 }
 
 export class CreateOrderDto {

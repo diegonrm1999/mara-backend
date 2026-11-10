@@ -15,6 +15,7 @@ import { buildDateFilter } from 'src/utils/filters';
 import { DailySummaryResponseDto } from './dto/get-daily-summary.dto';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { DateUtils } from 'src/utils/date.utils';
+import { PromotionsService } from 'src/promotions/promotions.service';
 
 type OrderTreatment = {
   treatment: { name: string };
@@ -32,6 +33,7 @@ export class OrdersService {
     private readonly clientService: ClientsService,
     private readonly userService: UsersService,
     private readonly treatmentService: TreatmentsService,
+    private readonly promotionsService: PromotionsService,
   ) {
     this.lambdaClient = new LambdaClient({
       region: 'us-east-1',
@@ -60,14 +62,13 @@ export class OrdersService {
 
   async createOrder(dto: CreateOrderDto, user: AuthUser) {
     await this.userService.ensureCanCreateOrder(user.id);
-    const treatmentIds = new Set(dto.treatments.map((t) => t.treatmentId));
-    await this.treatmentService.validateTreatments(treatmentIds);
+    const lines = await this.promotionsService.resolveOrderLines(
+      user.shopId,
+      dto.treatments,
+    );
     let clientId = await this.clientService.upsertOrderClient(dto, user.shopId);
 
-    const totalPrice = dto.treatments.reduce(
-      (sum, treatment) => sum + treatment.price,
-      0,
-    );
+    const totalPrice = lines.reduce((sum, line) => sum + line.price, 0);
 
     const createdOrder = await this.prisma.$transaction(async (tx) => {
       const shop = await tx.shop.update({
@@ -86,9 +87,11 @@ export class OrdersService {
           totalPrice: totalPrice,
           orderNumber: shop.lastOrderNumber,
           treatments: {
-            create: dto.treatments.map((t) => ({
-              treatmentId: t.treatmentId,
-              price: t.price,
+            create: lines.map((line) => ({
+              treatmentId: line.treatmentId,
+              price: line.price,
+              originalPrice: line.originalPrice,
+              promotionId: line.promotionId,
             })),
           },
         },
@@ -288,10 +291,11 @@ export class OrdersService {
       user.shopId,
     );
 
-    const totalPrice = dto.treatments.reduce(
-      (sum, treatment) => sum + treatment.price,
-      0,
+    const lines = await this.promotionsService.resolveOrderLines(
+      user.shopId,
+      dto.treatments,
     );
+    const totalPrice = lines.reduce((sum, line) => sum + line.price, 0);
 
     const updatedOrder = await this.prisma.order.update({
       where: { id },
@@ -306,9 +310,13 @@ export class OrdersService {
         }),
         treatments: {
           deleteMany: {},
-          create: dto.treatments.map((treatment) => ({
-            treatment: { connect: { id: treatment.treatmentId } },
-            price: treatment.price,
+          create: lines.map((line) => ({
+            treatment: { connect: { id: line.treatmentId } },
+            price: line.price,
+            originalPrice: line.originalPrice,
+            ...(line.promotionId && {
+              promotion: { connect: { id: line.promotionId } },
+            }),
           })),
         },
       },

@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { PromotionsService } from 'src/promotions/promotions.service';
 import { CreateScheduledOrderDto } from './dtos/create-scheduled-order.dto';
 import { PromoteScheduledOrderDto } from './dtos/promote-scheduled-order.dto';
 import { QueryScheduledOrdersDto } from './dtos/query-scheduled-orders.dto';
@@ -19,7 +20,10 @@ const DEFAULT_TREATMENT_DURATION = 120;
 
 @Injectable()
 export class ScheduledOrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly promotionsService: PromotionsService,
+  ) {}
 
   // ─────────────────────────────────────────────────────────────
   // PUBLIC: Availability
@@ -435,7 +439,11 @@ export class ScheduledOrdersService {
       });
 
       // 3. Calculate totals
-      const totalPrice = dto.treatments.reduce((sum, t) => sum + t.price, 0);
+      const lines = await this.promotionsService.resolveOrderLines(
+        scheduledOrder.shopId,
+        dto.treatments,
+      );
+      const totalPrice = lines.reduce((sum, l) => sum + l.price, 0);
 
       // Get treatment percentages
       const treatmentDetails = await tx.treatment.findMany({
@@ -449,9 +457,9 @@ export class ScheduledOrdersService {
         treatmentDetails.map((t) => [t.id, t.percentage]),
       );
 
-      const stylistEarnings = dto.treatments.reduce((sum, t) => {
-        const percentage = percentageMap.get(t.treatmentId) ?? 0;
-        return sum + (t.price * percentage) / 100;
+      const stylistEarnings = lines.reduce((sum, l) => {
+        const percentage = percentageMap.get(l.treatmentId) ?? 0;
+        return sum + (l.price * percentage) / 100;
       }, 0);
 
       // 4. Create Order
@@ -467,9 +475,11 @@ export class ScheduledOrdersService {
           stylistEarnings: Number(stylistEarnings.toFixed(2)),
           status: 'Created',
           treatments: {
-            create: dto.treatments.map((t) => ({
-              treatmentId: t.treatmentId,
-              price: t.price,
+            create: lines.map((l) => ({
+              treatmentId: l.treatmentId,
+              price: l.price,
+              originalPrice: l.originalPrice,
+              promotionId: l.promotionId,
             })),
           },
         },

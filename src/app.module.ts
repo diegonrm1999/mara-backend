@@ -30,6 +30,7 @@ import { UserTreatmentsModule } from './user-treatments/user-treatments.module';
 import { TreatmentCategoriesModule } from './treatment-categories/treatment-categories.module';
 import { ProductsModule } from './products/products.module';
 import { ProductCategoriesModule } from './product-categories/product-categories.module';
+import { PromotionsModule } from './promotions/promotions.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { ProductCategoriesModule } from './product-categories/product-categories
     TreatmentCategoriesModule,
     ProductsModule,
     ProductCategoriesModule,
+    PromotionsModule,
   ],
   controllers: [
     AppController,

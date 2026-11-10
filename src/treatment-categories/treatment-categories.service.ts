@@ -6,10 +6,14 @@ import {
 } from './dto/treatment-category.dto';
 import { AuthUser } from 'src/auth/models/auth-user';
 import { Prisma } from '@prisma/client';
+import { PromotionsService } from 'src/promotions/promotions.service';
 
 @Injectable()
 export class TreatmentCategoriesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private promotionsService: PromotionsService,
+  ) {}
 
   async create(dto: CreateTreatmentCategoryDto, user: AuthUser) {
     try {
@@ -66,20 +70,34 @@ export class TreatmentCategoriesService {
     }
   }
 
-  findAll(shopId: string) {
-    return this.prisma.treatmentCategory.findMany({
-      where: {
-        shopId: shopId,
-        deletedAt: null,
-      },
-      include: {
-        treatments: {
-          where: { deletedAt: null },
-          orderBy: { name: 'asc' },
+  async findAll(shopId: string) {
+    const [categories, promotions] = await Promise.all([
+      this.prisma.treatmentCategory.findMany({
+        where: {
+          shopId: shopId,
+          deletedAt: null,
         },
-      },
-      orderBy: { displayOrder: 'asc' },
-    });
+        include: {
+          treatments: {
+            where: { deletedAt: null },
+            orderBy: { name: 'asc' },
+          },
+        },
+        orderBy: { displayOrder: 'asc' },
+      }),
+      this.promotionsService.getActive(shopId),
+    ]);
+
+    return categories.map((category) => ({
+      ...category,
+      treatments: category.treatments.map((treatment) => ({
+        ...treatment,
+        pricing: this.promotionsService.resolveTreatmentPrice(
+          promotions,
+          treatment,
+        ),
+      })),
+    }));
   }
 
   async softDelete(id: string) {
